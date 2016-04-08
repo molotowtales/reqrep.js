@@ -1,0 +1,17 @@
+{
+  "name": "reqrep.js",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bluebird": "^3.3.4",
+    "node-rsa": "^0.3.2",
+    "protobufjs": "^5.0.1",
+    "zmq": "^2.14.0"
+  }
+}
