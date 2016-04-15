@@ -32,7 +32,6 @@ ReqRep.prototype.send = function(tracking_id, method, message) {
 
     var promise = new Promise(function(resolve, reject) {
         self.socket.on('message', function(type, tracking_id, data) {
-            console.log(self.socket.identity + ': answer data ', ', tracking_id:' + tracking_id.toString(), data);
             if (type.toString() == TYPE_RESPONSE) {
                 resolve(data);
             } else {
