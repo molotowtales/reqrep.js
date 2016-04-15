@@ -1,60 +1,48 @@
-var ReqRep     = require('./reqrep');
+var zmq              = require('zmq');
+var Promise          = require("bluebird");
 
-var protobufjs = require("protobufjs");
-var node_rsa   = require('node-rsa');
-var fs         = require('fs');
+const TYPE_READY     = "\x01";
+const TYPE_HEARTBEAT = "\x02";
+const TYPE_REQUEST   = "\x03";
+const TYPE_RESPONSE  = "\x04";
+const TYPE_ERROR     = "\x05";
 
-/*// protobuf-stuff
-var builder = protobufjs.loadProtoFile("protobuf_formats/user_service/user_service.proto");
-var pb_user_service = builder.build('user_service');
+var ReqRep = function(port, options, tracking_id, method, message) {
+    // @buffpojken: better way than using self?
+    const self = this;
+    self.port = port;
+    self.options = options;
 
-// key-stuff
-var keyData = fs.readFileSync('dev.pem');
-var key = new node_rsa();
-key.importKey(keyData, 'pkcs1');
+    self.socket = zmq.socket('req');
+    self.socket.identity = 'pid:' + process.pid;
+    self.socket.monitor(10, 0);
 
-// connect!
-var user_service = new ReqRep('tcp://127.0.0.1:52002', {}).then(
-    function(){
-        console.log('conn ok!');
-
-        var message = key.encrypt(new pb_user_service.Authenticate({
-            'email': 'slask@slask.se',
-            'password': '123'
-        }).encode().toBuffer());
-
-        // send message
-        this.send('123', 'authenticate', message).then(
-            function(data){
-                // decode response
-                console.log('ok!', pb_user_service.AuthenticationResponse.decode(data));
-            },
-            function(data){
-                // decode error
-                console.log('err', pb_user_service.AuthenticationError.decode(data));
-            });
-    },
-    function(){
-        console.log('conn err');
-    });*/
-
-
-
-var pb_relation_service = protobufjs.loadProtoFile("protobuf_formats/relation_service/relation_service.proto").build('relation_service');
-
-var relation_service = new ReqRep('tcp://127.0.0.1:52003', {}).then(
-    function(){
-        var message = new pb_relation_service.ReadUserRoleByUserUUID({
-            'user_uuid': '4548f758-ab78-11e3-bf6b-080027bf0f5d'
-        }).encode().toBuffer();
-
-        this.send('123', 'read_user_role_by_user_uuid', message).then(
-            function(data){
-                console.log('ok!', pb_relation_service.ReadUserRoleResponse.decode(data));
-            },
-            function(data){
-                console.log('err', pb_relation_service.ReadUserRoleError.decode(data));
-            });
-    },
-    function(){
+    var promise = new Promise.bind(self, function(resolve, reject) {
+        self.socket.on('connect', function(fd, ep) {
+            resolve(self);
+        });
     });
+    self.socket.connect(port);
+
+    return promise;
+};
+
+ReqRep.prototype.send = function(tracking_id, method, message) {
+    const self = this;
+
+    var promise = new Promise(function(resolve, reject) {
+        self.socket.on('message', function(type, tracking_id, data) {
+            console.log(self.socket.identity + ': answer data ', ', tracking_id:' + tracking_id.toString(), data);
+            if (type.toString() == TYPE_RESPONSE) {
+                resolve(data);
+            } else {
+                reject(data);
+            }
+        });
+    });
+
+    self.socket.send([TYPE_REQUEST, tracking_id, method, message]);
+    return promise;
+};
+
+module.exports = ReqRep;
