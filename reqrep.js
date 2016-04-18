@@ -21,7 +21,7 @@ class ReqRepp{
     }
 
     setup(){
-        this.socket.connect(port);
+        this.socket.connect(this.port);
         return new Promise((resolve, reject) => {
             this.socket.on('connect', (fd, ep) => {
                 resolve(this);
