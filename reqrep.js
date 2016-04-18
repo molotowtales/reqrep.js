@@ -16,8 +16,10 @@ class ReqRepp{
 
         this.socket = zmq.socket('req');
         this.socket.identity = 'pid:' + process.pid;
-        this.socket.monitor(10, 0);
 
+        // I haven't read up on exactly what monitor does, but if it actually opens the connection, 
+        // it should be moved to setup. 
+        this.socket.monitor(10, 0);
     }
 
     setup(){
