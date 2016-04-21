@@ -1,7 +1,7 @@
 {
-  "name": "reqrep.js",
+  "name": "reqrep",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "reqrep.js",
   "scripts": {
     "start": "node --harmony_destructuring index.js",
     "test": " NODE_ENVIRONMENT=test mocha --harmony_destructuring tests/"
