@@ -1,3 +1,0 @@
-[submodule "protobuf_formats"]
-	path = protobuf_formats
-	url = git@git.linedev.se:libraries/protobuf_formats
