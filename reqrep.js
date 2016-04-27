@@ -37,7 +37,7 @@ class ReqRep {
             if (type.toString() == TYPE_RESPONSE) {
                 resolve(data);
             } else {
-                reject(new Error("Incorrect response received."));
+                reject(data);
             }
         });
     }
