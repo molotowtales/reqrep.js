@@ -6,7 +6,7 @@ var zmq			= require('zmq');
 
 describe("ReqRep with Divide Service", function() {
 	before(function() {
-		this.pb_divide_service = protobufjs.loadProtoFile('tests/divide_service.proto').build('divide_service');
+		this.pb_divide_service = protobufjs.loadProtoFile(__dirname + '/divide_service.proto').build('divide_service');
 
 		this.port = 'tcp://127.0.0.1:56123';
 
