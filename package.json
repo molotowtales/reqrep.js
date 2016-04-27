@@ -1,6 +1,6 @@
 {
   "name": "reqrep",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "reqrep.js",
   "scripts": {
     "start": "node --harmony_destructuring index.js",
