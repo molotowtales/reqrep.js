@@ -1,0 +1,19 @@
+package divide_service;
+
+message Divide {
+    required int32 num1 = 1;
+    required int32 num2 = 2;
+}
+
+message DivideResponse {
+    required float result = 1;
+}
+
+message DivideError {
+    enum DivideErrorType {
+        UNKNOWN_ERROR = 0;
+    }
+
+    required DivideErrorType type = 1;
+    optional string message = 2;
+}

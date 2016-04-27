@@ -1,27 +1,45 @@
 "use strict";
-const ReqRep		= require('./../reqrep');
-const protobufjs	= require("protobufjs");
-const assert		= require("assert");
-const zmq			= require('zmq');
+var ReqRep		= require('./../reqrep');
+var protobufjs	= require('protobufjs');
+var assert		= require('assert');
+var zmq			= require('zmq');
 
-
-describe("ReqRep with Relation Service", function() {
-
+describe("ReqRep with Divide Service", function() {
 	before(function() {
-		this.pb_relation_service = protobufjs.loadProtoFile("protobuf_formats/relation_service/relation_service.proto").build('relation_service');
+		this.pb_divide_service = protobufjs.loadProtoFile('tests/divide_service.proto').build('divide_service');
+
+		this.port = 'tcp://127.0.0.1:56123';
+
+		// setup reqrep-server
+		this.rep = zmq.socket('rep');
+
+		this.rep.on('message', (type, tracking_id, method, message) => {
+			if (type.toString() == "\x03" && method.toString() == 'divide') {
+				var request = this.pb_divide_service.Divide.decode(message);
+				var reply = new this.pb_divide_service.DivideResponse({
+					'result': request.num1 / request.num2
+				}).encode().toBuffer();
+				this.rep.send(["\x04", tracking_id, reply]);
+			}
+		});
+
+		this.rep.bind(this.port, (err) => {
+			if (err) throw err;
+		});
 	});
 
-	it('should load relations', function(done) {
-		var pb_relation_service = this.pb_relation_service;
-		var relation_service = new ReqRep('tcp://accounts.test.lin.education:52003', {}).connect().then(function(req) {
-			var message = new pb_relation_service.ReadUserRoleByUserUUID({
-				'user_uuid': '4548f758-ab78-11e3-bf6b-080027bf0f5d'
+	it('should be able to divide', function(done) {
+		var relation_service = new ReqRep(this.port, {}).connect().then((req) => {
+			var message = new this.pb_divide_service.Divide({
+				'num1': 10,
+				'num2': 2
 			}).encode().toBuffer();
-			req.send('123', 'read_user_role_by_user_uuid', message).then(
-				function(data) {
-					done();
-				}).catch(done);
-		}).catch(done)
+			req.send('123', 'divide', message).then((data) => {
+				var response = this.pb_divide_service.DivideResponse.decode(data);
+				assert.equal(response.result, 5);
+				done();
+			}).catch(done);
+		}).catch(done);
 	});
 
 });
