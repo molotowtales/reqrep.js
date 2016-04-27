@@ -6,19 +6,20 @@
     "start": "node --harmony_destructuring index.js",
     "test": " NODE_ENVIRONMENT=test mocha --harmony_destructuring tests/"
   },
-  "author": "",
+  "author": {
+    "name": "Bambi Vigren",
+    "email": "christopher.vigren@gmail.com",
+    "url": ""
+  },
   "license": "ISC",
   "description": "",
   "dependencies": {
     "bluebird": "^3.3.4",
-    "node-rsa": "^0.3.2",
     "protobufjs": "^5.0.1",
     "underscore": "^1.8.3",
     "zmq": "^2.14.0"
   },
   "devDependencies": {
-    "del": "^2.2.0",
-    "mocha": "2.4.5",
-    "should": "8.2.2"
+    "mocha": "2.4.5"
   }
 }
