@@ -1,0 +1,20 @@
+package calc_service;
+
+message Add {
+	required int32 num1 = 1;
+	required int32 num2 = 2;
+}
+
+message AddResponse {
+	required int32 result = 1;
+}
+
+message AddError {
+	enum AddErrorType {
+		UNKNOWN_ERROR = 0;
+		TO_PERFECT_RESULT = 1;
+	}
+
+	required AddErrorType type = 1;
+	optional string message = 2;
+}
