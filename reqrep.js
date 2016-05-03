@@ -1,15 +1,25 @@
-"use strict"; 
-var zmq              = require('zmq');
-var Promise          = require('bluebird');
-var _                = require('underscore');
+"use strict";
+var zmq     = require('zmq');
+var Promise = require('bluebird');
+var _       = require('underscore');
 
-const TYPE_READY     = "\x01";
-const TYPE_HEARTBEAT = "\x02";
-const TYPE_REQUEST   = "\x03";
-const TYPE_RESPONSE  = "\x04";
-const TYPE_ERROR     = "\x05";
+const MessageTypes = {
+  TYPE_READY:     "\x01",
+  TYPE_HEARTBEAT: "\x02",
+  TYPE_REQUEST:   "\x03",
+  TYPE_RESPONSE:  "\x04",
+  TYPE_ERROR:     "\x05"
+}
 
-class ReqRep {
+
+function ProcessingError(message) {
+  Error.captureStackTrace(this, this.constructor);
+  this.name = this.constructor.name;
+  this.message = message;
+};
+require('util').inherits(ProcessingError, Error);
+
+class Client {
 
     constructor(port, options) {
         var self = this;
@@ -21,20 +31,20 @@ class ReqRep {
         }, options);
 
         this.socket = zmq.socket('req');
-        this.socket.identity = 'pid:' + process.pid;
+        //this.socket.identity = 'pid:' + process.pid;
 
         this.responses = [];
 
         this.socket.on('error', function(err) {
-            var { resolve, reject} = self.responses.shift();
+            var { resolve, reject } = self.responses.shift();
 
             reject(err);
         });
 
         this.socket.on('message', function(type, tracking_id, data) {
-            var { resolve, reject} = self.responses.shift();
+            var { resolve, reject } = self.responses.shift();
 
-            if (type.toString() == TYPE_RESPONSE) {
+            if (type.toString() == MessageTypes.TYPE_RESPONSE) {
                 resolve(data);
             } else {
                 reject(data);
@@ -43,7 +53,13 @@ class ReqRep {
     }
 
     connect() {
-        this.socket.monitor(10, 0);
+        this.socket.connect(this.port);
+
+        return new Promise((resolve, reject) => {
+            resolve(this);
+        });
+
+        /*this.socket.monitor(10, 0);
 
         this.socket.connect(this.port);
 
@@ -51,7 +67,7 @@ class ReqRep {
             this.socket.on('connect', (fd, ep) => {
                 resolve(this);
             });
-        }).timeout(this.options.connect_timeout, 'connect timeout');
+        }).timeout(this.options.connect_timeout, 'connect timeout');*/
     }
 
     disconnect() {
@@ -65,7 +81,7 @@ class ReqRep {
     }
 
     send(tracking_id, method, message) {
-        this.socket.send([TYPE_REQUEST, tracking_id, method, message]);
+        this.socket.send([MessageTypes.TYPE_REQUEST, tracking_id, method, message]);
 
         return new Promise((resolve, reject) => {
             this.responses.push({
@@ -76,4 +92,79 @@ class ReqRep {
     }
 }
 
-module.exports = ReqRep;
+class Server {
+
+    constructor(server_endpoint, options) {
+        var self = this;
+
+        this.options = _.extend({
+            workers: 10,
+        }, options);
+
+        this.server_endpoint = server_endpoint;
+        this.worker_endpoint = 'inproc://workers';
+
+        this.router = zmq.socket('router');
+        //this.router.identity = 'router';
+
+        this.dealer = zmq.socket('dealer');
+        //this.dealer.identity = 'dealer';
+
+        this.workers = [];
+    }
+
+    run(callback) {
+        var self = this;
+
+        this.router.bind(this.server_endpoint, function(err) {
+            if (err) throw err;
+            //console.log('router bound!');
+
+            self.router.on('message', function() {
+                //console.log(self.router.identity + ': received');
+                self.dealer.send(Array.prototype.slice.call(arguments));
+            });
+        });
+
+        this.dealer.bind(this.worker_endpoint, function(err) {
+            if (err) throw err;
+            //console.log('dealer bound!');
+
+            self.dealer.on('message', function() {
+                //console.log(self.dealer.identity + ': received');
+                self.router.send(Array.prototype.slice.call(arguments));
+            });
+        });
+
+        for (var i = 0; i < this.options.workers; i++) {
+            //console.log('setup worker#' + i);
+            var worker = zmq.socket('rep');
+            //worker.identity = 'worker:' + i;
+
+            worker.on('message', function(message_type, tracking_id, method, data) {
+                var response;
+                try {
+                    response = [MessageTypes.TYPE_RESPONSE, tracking_id, callback.apply(this, [tracking_id, method, data])];
+                } catch (err) {
+                    if (err instanceof ProcessingError) {
+                        response = [MessageTypes.TYPE_ERROR, tracking_id, err.message];
+                    } else {
+                        response = [MessageTypes.TYPE_ERROR, tracking_id, 'An internal service error occurred: [' + err.name + ': ' + err.message + ']'];
+                    }
+                } finally {
+                    this.send(response);
+                }
+            });
+            worker.connect(this.worker_endpoint);
+
+            this.workers.push(worker);
+        }
+    }
+}
+
+module.exports = {
+    MessageTypes: MessageTypes,
+    ProcessingError: ProcessingError,
+    Client: Client,
+    Server: Server
+}
