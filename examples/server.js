@@ -21,7 +21,7 @@ class Service {
 			throw new ReqRep.ProcessingError(new this.pb.AddError({type: 0, message: 'Wrong question!'}).encode().toBuffer());
 		}
 		if (result == 44) {
-			// will fuck things up
+			// will break things
 			8+o;
 		}
 

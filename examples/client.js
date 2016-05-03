@@ -1,3 +1,4 @@
+"use strict";
 var ReqRep		= require('./../reqrep');
 var zmq			= require('zmq');
 var _			= require('underscore');
