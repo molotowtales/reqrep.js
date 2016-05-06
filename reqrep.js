@@ -142,18 +142,15 @@ class Server {
             //worker.identity = 'worker:' + i;
 
             worker.on('message', function(message_type, tracking_id, method, data) {
-                var response;
-                try {
-                    response = [MessageTypes.TYPE_RESPONSE, tracking_id, callback.apply(this, [tracking_id, method, data])];
-                } catch (err) {
+                callback.apply(this, [tracking_id, method, data]).then((result) => {
+                    this.send([MessageTypes.TYPE_RESPONSE, tracking_id, result]);
+                }).catch((err) => {
                     if (err instanceof ProcessingError) {
-                        response = [MessageTypes.TYPE_ERROR, tracking_id, err.message];
+                        this.send([MessageTypes.TYPE_ERROR, tracking_id, err.message]);
                     } else {
-                        response = [MessageTypes.TYPE_ERROR, tracking_id, 'An internal service error occurred: [' + err.name + ': ' + err.message + ']'];
+                        this.send([MessageTypes.TYPE_ERROR, tracking_id, 'An internal service error occurred: [' + err.name + ': ' + err.message + ']']);
                     }
-                } finally {
-                    this.send(response);
-                }
+                });
             });
             worker.connect(this.worker_endpoint);
 
