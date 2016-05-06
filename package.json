@@ -1,6 +1,6 @@
 {
   "name": "lin-reqrep",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "reqrep.js",
   "scripts": {
     "test": " NODE_ENVIRONMENT=test mocha --harmony_destructuring tests/"
