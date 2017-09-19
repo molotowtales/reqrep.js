@@ -31,6 +31,7 @@ class Client {
         }, options);
 
         this.socket = zmq.socket('req');
+        this.connceted = false;
         //this.socket.identity = 'pid:' + process.pid;
 
         this.responses = [];
@@ -55,6 +56,7 @@ class Client {
 
     connect() {
         this.socket.connect(this.port);
+        this.connceted = true;
 
         return new Promise((resolve, reject) => {
             resolve(this);
@@ -72,14 +74,17 @@ class Client {
     }
 
     disconnect() {
-        this.socket.disconnect(this.port);
+        if (this.connceted) {
+            this.connceted = false;
+            this.socket.disconnect(this.port);
+            this.socket.close();
 
-        return new Promise((resolve, reject) => {
-            this.socket.on('disconnect', (fd, ep) => {
-                this.socket.close();
-                resolve(this);
+            return new Promise((resolve, reject) => {
+                this.socket.on('disconnect', (fd, ep) => {
+                    resolve(this);
+                });
             });
-        });
+        }
     }
 
     send(tracking_id, method, message) {
