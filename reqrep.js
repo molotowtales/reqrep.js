@@ -49,6 +49,7 @@ class Client {
             } else {
                 reject(data);
             }
+            self.disconnect();
         });
     }
 
@@ -75,6 +76,7 @@ class Client {
 
         return new Promise((resolve, reject) => {
             this.socket.on('disconnect', (fd, ep) => {
+                this.socket.close();
                 resolve(this);
             });
         });
